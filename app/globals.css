@@ -1,0 +1,101 @@
+﻿@import "tailwindcss";
+
+@font-face {
+  font-family: "Clash Display";
+  src: local("Clash Display"), local("ClashDisplay-Semibold");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --background: #020202;
+  --foreground: #ffffff;
+  --font-family-body: var(--font-manrope), "Manrope", sans-serif;
+  --font-family-display: "Clash Display", var(--font-manrope), sans-serif;
+  --type-line-height: 1.2;
+  --type-letter-spacing: 0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope);
+}
+
+* {
+  border-color: #2f3c44;
+}
+
+body {
+  background: radial-gradient(circle at top, #0f2028 0%, #040505 30%, #020202 100%);
+  color: var(--foreground);
+  min-height: 100vh;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: var(--type-line-height);
+  letter-spacing: var(--type-letter-spacing);
+}
+
+button,
+input,
+select,
+textarea,
+label {
+  font-family: var(--font-family-body);
+  font-size: 16px;
+  line-height: var(--type-line-height);
+  letter-spacing: var(--type-letter-spacing);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 1;
+  cursor: pointer;
+}
+
+.text-heading-40 {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: var(--type-line-height);
+  letter-spacing: var(--type-letter-spacing);
+}
+
+.font-clash,
+.text-title-24 {
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: var(--type-line-height);
+  letter-spacing: var(--type-letter-spacing);
+}
+
+.text-body-16,
+.text-body-16-tight {
+  font-family: var(--font-family-body);
+  font-size: 16px;
+  line-height: var(--type-line-height);
+  letter-spacing: var(--type-letter-spacing);
+}
+
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #8a732e #0f2028;
+  scrollbar-gutter: stable;
+}
+
+.app-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-scrollbar::-webkit-scrollbar-track {
+  background: #0f2028;
+  border-radius: 9999px;
+}
+
+.app-scrollbar::-webkit-scrollbar-thumb {
+  background: #8a732e;
+  border-radius: 9999px;
+}
