@@ -35,9 +35,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -448,85 +455,102 @@ export default function ProjectDetailsPage() {
         </Card>
       ) : null}
 
-      <Modal open={taskModal} onClose={() => setTaskModal(false)} title="Create New Task">
-        <form
-          className="space-y-4"
-          action={(formData) =>
-            createTaskMutation.mutate({
-              projectId,
-              taskName: String(formData.get("taskName") || ""),
-              taskDate: String(formData.get("taskDate") || ""),
-              dueDate: String(formData.get("taskDate") || ""),
-              priority: String(formData.get("priority") || "medium") as "high" | "medium" | "low",
-              description: String(formData.get("description") || ""),
-            })
-          }
-        >
-          <div>
-            <Label>Task name</Label>
-            <Input name="taskName" placeholder="task" required />
-          </div>
-          <div>
-            <Label>Task Date</Label>
-            <Input name="taskDate" type="date" required />
-          </div>
-          <div>
-            <Label>Priority</Label>
-            <Select name="priority">
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </Select>
-          </div>
-          <div>
-            <Label>Task Description</Label>
-            <Textarea name="description" placeholder="task description......" required />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Button type="button" variant="outline" onClick={() => setTaskModal(false)}>
-              Cancel
-            </Button>
-            <Button disabled={createTaskMutation.isPending}>{createTaskMutation.isPending ? "Creating..." : "Create"}</Button>
-          </div>
-        </form>
-      </Modal>
+      <Dialog open={taskModal} onOpenChange={setTaskModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Task</DialogTitle>
+            <DialogDescription>
+              Add a new task for this project.
+            </DialogDescription>
+          </DialogHeader>
 
-      <Modal open={docModal} onClose={() => setDocModal(false)} title="Upload Document">
-        <form
-          className="space-y-4"
-          action={(formData) => {
-            formData.append("projectId", projectId);
-            uploadDocumentMutation.mutate(formData);
-          }}
-        >
-          <div>
-            <Label>Select Category</Label>
-            <Select name="category" required>
-              <option value="Drawings">Drawings</option>
-              <option value="Invoice">Invoice</option>
-              <option value="Reports">Reports</option>
-            </Select>
-          </div>
-          <div>
-            <Label>Title</Label>
-            <Input name="title" placeholder="Document title" required />
-          </div>
-          <div className="rounded-lg border border-dashed border-white/50 p-8 text-center">
-            <Label htmlFor="document" className="cursor-pointer text-body-16">
-              Upload Photo
-              <p className="text-body-16 text-white/70">png,jpeg,jpg</p>
-            </Label>
-            <Input id="document" name="document" type="file" className="hidden" required />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Button type="button" variant="outline" onClick={() => setDocModal(false)}>
-              Cancel
-            </Button>
-            <Button disabled={uploadDocumentMutation.isPending}>{uploadDocumentMutation.isPending ? "Uploading..." : "Upload"}</Button>
-          </div>
-        </form>
-      </Modal>
+          <form
+            className="space-y-4"
+            action={(formData) =>
+              createTaskMutation.mutate({
+                projectId,
+                taskName: String(formData.get("taskName") || ""),
+                taskDate: String(formData.get("taskDate") || ""),
+                dueDate: String(formData.get("taskDate") || ""),
+                priority: String(formData.get("priority") || "medium") as "high" | "medium" | "low",
+                description: String(formData.get("description") || ""),
+              })
+            }
+          >
+            <div>
+              <Label>Task name</Label>
+              <Input name="taskName" placeholder="task" required />
+            </div>
+            <div>
+              <Label>Task Date</Label>
+              <Input name="taskDate" type="date" required />
+            </div>
+            <div>
+              <Label>Priority</Label>
+              <Select name="priority">
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Task Description</Label>
+              <Textarea name="description" placeholder="task description......" required />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTaskModal(false)}>
+                Cancel
+              </Button>
+              <Button disabled={createTaskMutation.isPending}>{createTaskMutation.isPending ? "Creating..." : "Create"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={docModal} onOpenChange={setDocModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>
+              Upload a new project document for the client and team.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            action={(formData) => {
+              formData.append("projectId", projectId);
+              uploadDocumentMutation.mutate(formData);
+            }}
+          >
+            <div>
+              <Label>Select Category</Label>
+              <Select name="category" required>
+                <option value="Drawings">Drawings</option>
+                <option value="Invoice">Invoice</option>
+                <option value="Reports">Reports</option>
+              </Select>
+            </div>
+            <div>
+              <Label>Title</Label>
+              <Input name="title" placeholder="Document title" required />
+            </div>
+            <div className="rounded-lg border border-dashed border-white/50 p-8 text-center">
+              <Label htmlFor="document" className="cursor-pointer text-body-16">
+                Upload Photo
+                <p className="text-body-16 text-white/70">png,jpeg,jpg</p>
+              </Label>
+              <Input id="document" name="document" type="file" className="hidden" required />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDocModal(false)}>
+                Cancel
+              </Button>
+              <Button disabled={uploadDocumentMutation.isPending}>{uploadDocumentMutation.isPending ? "Uploading..." : "Upload"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

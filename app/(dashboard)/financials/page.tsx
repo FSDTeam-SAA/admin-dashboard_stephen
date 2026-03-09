@@ -6,9 +6,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFinancialOverview, updatePhasePaymentStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,7 +51,16 @@ export default function FinancialsPage() {
   });
 
   const rows = useMemo(
-    () => (data?.projects ?? []).filter((project) => project.projectName.toLowerCase().includes(search.toLowerCase())),
+    () =>
+      (data?.projects ?? [])
+        .filter((project) =>
+          project.projectName.toLowerCase().includes(search.toLowerCase()),
+        )
+        .map((project) => ({
+          ...project,
+          displayPaidAmount:
+            project.progress >= 100 ? project.projectBudget : project.totalPaid,
+        })),
     [data?.projects, search],
   );
 
@@ -96,7 +112,7 @@ export default function FinancialsPage() {
                     <td className="px-6 py-5">{project.clientName}</td>
                     <td className="px-6 py-5">{project.projectName}</td>
                     <td className="px-6 py-5">{formatCurrency(project.projectBudget)}</td>
-                    <td className="px-6 py-5">{formatCurrency(project.totalPaid)}</td>
+                    <td className="px-6 py-5">{formatCurrency(project.displayPaidAmount)}</td>
                     <td className="px-6 py-5">{formatDate(project.startDate)}</td>
                     <td className="px-6 py-5">{formatDate(project.endDate)}</td>
                     <td className="px-6 py-5 min-w-[220px]">
@@ -129,41 +145,50 @@ export default function FinancialsPage() {
         <PaginationBar page={paged.page} totalPages={paged.totalPages} onChange={setPage} />
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Update Paid Amount" className="max-w-2xl">
-        <div className="space-y-4">
-          <div>
-            <Label>Select Phase</Label>
-            <Select value={phaseName} onChange={(e) => setPhaseName(e.target.value)}>
-              {(currentProject?.phases ?? []).map((phase) => (
-                <option key={phase.phaseName} value={phase.phaseName}>
-                  {phase.phaseName}
-                </option>
-              ))}
-            </Select>
-          </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Update Paid Amount</DialogTitle>
+            <DialogDescription>
+              Update the selected phase payment status for this project.
+            </DialogDescription>
+          </DialogHeader>
 
-          <div>
-            <Label>Payment Status</Label>
-            <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as "paid" | "unpaid")}>
-              <option value="paid">paid</option>
-              <option value="unpaid">unpaid</option>
-            </Select>
-          </div>
+          <div className="space-y-4">
+            <div>
+              <Label>Select Phase</Label>
+              <Select value={phaseName} onChange={(e) => setPhaseName(e.target.value)}>
+                {(currentProject?.phases ?? []).map((phase) => (
+                  <option key={phase.phaseName} value={phase.phaseName}>
+                    {phase.phaseName}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <Button variant="outline" className="h-12" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="h-12"
-              onClick={() => mutation.mutate({ projectId, phaseName, paymentStatus })}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? "Updating..." : "Update"}
-            </Button>
+            <div>
+              <Label>Payment Status</Label>
+              <Select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as "paid" | "unpaid")}>
+                <option value="paid">paid</option>
+                <option value="unpaid">unpaid</option>
+              </Select>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" className="h-12" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="h-12"
+                onClick={() => mutation.mutate({ projectId, phaseName, paymentStatus })}
+                disabled={mutation.isPending}
+              >
+                {mutation.isPending ? "Updating..." : "Update"}
+              </Button>
+            </DialogFooter>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

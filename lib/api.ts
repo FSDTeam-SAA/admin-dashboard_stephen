@@ -260,8 +260,26 @@ export async function getManagers() {
   return data.data;
 }
 
+export async function getAdminProjects(params?: {
+  status?: string;
+  search?: string;
+  manager?: string;
+}) {
+  const { data } = await http.get<ApiResponse<Project[]>>("/admin/projects", {
+    params,
+  });
+  return data.data;
+}
+
 export async function createManager(payload: FormData) {
   const { data } = await http.post<ApiResponse<User>>("/admin/managers", payload);
+  return data;
+}
+
+export async function deleteManager(managerId: string) {
+  const { data } = await http.delete<ApiResponse<null>>(
+    `/admin/managers/${managerId}`,
+  );
   return data;
 }
 
