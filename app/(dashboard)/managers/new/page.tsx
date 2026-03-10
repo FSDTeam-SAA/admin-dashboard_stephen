@@ -23,6 +23,16 @@ export default function AddManagerPage() {
   });
 
   async function onSubmit(formData: FormData) {
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
+
+    if (password !== confirmPassword) {
+      toast.error("Password and confirm password do not match");
+      return;
+    }
+
+    formData.set("category", "normal");
+    formData.delete("confirmPassword");
     mutation.mutate(formData);
   }
 
@@ -34,6 +44,8 @@ export default function AddManagerPage() {
       <p className="text-body-16 text-white/80">Create and manage your Mange Manager&apos;s</p>
 
       <form action={onSubmit} className="space-y-4">
+        <input type="hidden" name="category" value="normal" />
+
         <div>
           <Label>Manager Name</Label>
           <Input name="name" placeholder="Enter project manager name" required />
