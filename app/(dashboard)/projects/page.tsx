@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Edit2, Plus, Search } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -18,6 +18,8 @@ import {
 } from "@/lib/project-form";
 import UpdateProjectModal, {
   type EditablePhase,
+  type ExistingProjectImage,
+  type NewProjectImage,
 } from "./_components/Update_project";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,6 +44,10 @@ export default function ProjectsPage() {
   const [address, setAddress] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [existingImages, setExistingImages] = useState<ExistingProjectImage[]>([]);
+  const [removedImagePublicIds, setRemovedImagePublicIds] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<NewProjectImage[]>([]);
+  const newImagesRef = useRef<Array<NewProjectImage & { file: File }>>([]);
   const [phases, setPhases] = useState<EditablePhase[]>([
     { phaseName: "", amount: "", dueDate: "" },
   ]);
@@ -70,16 +76,7 @@ export default function ProjectsPage() {
       payload,
     }: {
       projectId: string;
-      payload: {
-        clientName: string;
-        projectName: string;
-        category: string;
-        phases: Array<{ phaseName: string; amount: number; dueDate: string }>;
-        startDate: string;
-        endDate: string;
-        address: string;
-        siteManagerId: string;
-      };
+      payload: FormData;
     }) => updateProject(projectId, payload),
     onSuccess: (_response, variables) => {
       toast.success("Project updated successfully");
@@ -92,6 +89,14 @@ export default function ProjectsPage() {
     },
     onError: (error) => toast.error(error.message),
   });
+
+  useEffect(() => {
+    return () => {
+      newImagesRef.current.forEach((image) => {
+        URL.revokeObjectURL(image.preview);
+      });
+    };
+  }, []);
 
   function openEditModal(project: Project) {
     setEditingProject(project);
@@ -111,11 +116,28 @@ export default function ProjectsPage() {
           }))
         : [{ phaseName: "", amount: "", dueDate: "" }],
     );
+    setExistingImages(
+      (project.images ?? [])
+        .filter((image) => image.public_id && image.url)
+        .map((image) => ({
+          public_id: String(image.public_id),
+          url: image.url,
+        })),
+    );
+    setRemovedImagePublicIds([]);
+    newImagesRef.current.forEach((image) => URL.revokeObjectURL(image.preview));
+    newImagesRef.current = [];
+    setNewImages([]);
   }
 
   function closeEditModal() {
     setEditingProject(null);
     setPhases([{ phaseName: "", amount: "", dueDate: "" }]);
+    setExistingImages([]);
+    setRemovedImagePublicIds([]);
+    newImagesRef.current.forEach((image) => URL.revokeObjectURL(image.preview));
+    newImagesRef.current = [];
+    setNewImages([]);
   }
 
   function handlePhaseChange(
@@ -136,6 +158,42 @@ export default function ProjectsPage() {
 
   function handleRemovePhase(index: number) {
     setPhases((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
+  function handleNewImagesChange(files: FileList | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    const nextItems = selectedFiles.map((file, index) => ({
+      id: `${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    newImagesRef.current = [...newImagesRef.current, ...nextItems];
+    setNewImages(newImagesRef.current.map(({ id, preview }) => ({ id, preview })));
+  }
+
+  function handleRemoveExistingImage(publicId: string) {
+    setExistingImages((prev) =>
+      prev.filter((image) => image.public_id !== publicId),
+    );
+    setRemovedImagePublicIds((prev) =>
+      prev.includes(publicId) ? prev : [...prev, publicId],
+    );
+  }
+
+  function handleRemoveNewImage(imageId: string) {
+    const removed = newImagesRef.current.find((image) => image.id === imageId);
+    if (removed) {
+      URL.revokeObjectURL(removed.preview);
+    }
+    newImagesRef.current = newImagesRef.current.filter(
+      (image) => image.id !== imageId,
+    );
+    setNewImages(newImagesRef.current.map(({ id, preview }) => ({ id, preview })));
   }
 
   function handleUpdateProject() {
@@ -201,18 +259,24 @@ export default function ProjectsPage() {
       return;
     }
 
+    const payload = new FormData();
+    payload.set("clientName", clientName.trim());
+    payload.set("projectName", projectName.trim());
+    payload.set("category", category);
+    payload.set("phases", JSON.stringify(normalizedPhases));
+    payload.set("startDate", startDate);
+    payload.set("endDate", endDate);
+    payload.set("address", address.trim());
+    payload.set("siteManagerId", siteManagerId);
+    payload.set("removedImagePublicIds", JSON.stringify(removedImagePublicIds));
+
+    newImagesRef.current.forEach((image) => {
+      payload.append("images", image.file);
+    });
+
     updateProjectMutation.mutate({
       projectId: editingProject._id,
-      payload: {
-        clientName: clientName.trim(),
-        projectName: projectName.trim(),
-        category,
-        phases: normalizedPhases,
-        startDate,
-        endDate,
-        address: address.trim(),
-        siteManagerId,
-      },
+      payload,
     });
   }
 
@@ -354,6 +418,11 @@ export default function ProjectsPage() {
         onEndDateChange={setEndDate}
         address={address}
         onAddressChange={setAddress}
+        existingImages={existingImages}
+        newImages={newImages}
+        onNewImagesChange={handleNewImagesChange}
+        onRemoveExistingImage={handleRemoveExistingImage}
+        onRemoveNewImage={handleRemoveNewImage}
         isPending={updateProjectMutation.isPending}
       />
     </div>

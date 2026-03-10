@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { ChevronLeft, Eye, EyeOff, Plus, X } from "lucide-react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, Eye, EyeOff, Plus, Upload, X } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createProject, getManagers } from "@/lib/api";
 import { PROJECT_CATEGORIES } from "@/lib/constants";
@@ -20,10 +20,18 @@ type Phase = {
   paymentDate: string;
 };
 
+type ProjectImageItem = {
+  id: string;
+  file: File;
+  preview: string;
+};
+
 export default function AddProjectPage() {
   const router = useRouter();
   const [showClientPassword, setShowClientPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const projectImagesRef = useRef<ProjectImageItem[]>([]);
+  const [projectImages, setProjectImages] = useState<ProjectImageItem[]>([]);
   const [phases, setPhases] = useState<Phase[]>([
     { phaseName: "Deposit", amount: "37000", paymentDate: "" },
   ]);
@@ -45,6 +53,43 @@ export default function AddProjectPage() {
     },
     onError: (error) => toast.error(error.message),
   });
+
+  useEffect(() => {
+    projectImagesRef.current = projectImages;
+  }, [projectImages]);
+
+  useEffect(() => {
+    return () => {
+      projectImagesRef.current.forEach((item) => {
+        URL.revokeObjectURL(item.preview);
+      });
+    };
+  }, []);
+
+  const handleProjectImagesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) {
+      return;
+    }
+
+    const newItems = files.map((file, index) => ({
+      id: `${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setProjectImages((prev) => [...prev, ...newItems]);
+    event.target.value = "";
+  };
+
+  const removeProjectImage = (imageId: string) => {
+    setProjectImages((prev) => {
+      const removed = prev.find((item) => item.id === imageId);
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((item) => item.id !== imageId);
+    });
+  };
 
   async function onSubmit(formData: FormData) {
     const clientName = String(formData.get("clientName") || "").trim();
@@ -119,19 +164,21 @@ export default function AddProjectPage() {
       return;
     }
 
-    createProjectMutation.mutate({
-      clientName,
-      clientEmail,
-      clientPassword,
-      projectName,
-      category,
-      phases: normalizedPhases,
-      projectBudget: totalProjectBudget,
-      startDate,
-      endDate,
-      address,
-      siteManagerId,
-    });
+    const payload = new FormData();
+    payload.set("clientName", clientName);
+    payload.set("clientEmail", clientEmail);
+    payload.set("clientPassword", clientPassword);
+    payload.set("projectName", projectName);
+    payload.set("category", category);
+    payload.set("phases", JSON.stringify(normalizedPhases));
+    payload.set("projectBudget", String(totalProjectBudget));
+    payload.set("startDate", startDate);
+    payload.set("endDate", endDate);
+    payload.set("address", address);
+    payload.set("siteManagerId", siteManagerId);
+    projectImages.forEach((image) => payload.append("images", image.file));
+
+    createProjectMutation.mutate(payload);
   }
 
   return (
@@ -142,6 +189,54 @@ export default function AddProjectPage() {
       <p className="text-body-16 text-white/80">Create and manage your projects</p>
 
       <form action={onSubmit} className="space-y-4">
+        <div>
+          <Label>Project Images</Label>
+          <div className="mt-2 rounded-lg border border-dashed border-white/35 p-4">
+            <label
+              htmlFor="project-images"
+              className="mb-3 inline-flex cursor-pointer items-center gap-2 rounded-md border border-white/25 px-3 py-2 text-sm text-white/90"
+            >
+              <Upload className="h-4 w-4" />
+              Add Images
+            </label>
+            <Input
+              id="project-images"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleProjectImagesChange}
+            />
+
+            {projectImages.length === 0 ? (
+              <p className="text-sm text-white/60">
+                Upload multiple images and remove any with the close icon.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {projectImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className="relative h-28 overflow-hidden rounded-md border border-white/20"
+                  >
+                    <div
+                      className="h-full w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url(${image.preview})` }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
+                      onClick={() => removeProjectImage(image.id)}
+                      aria-label="Remove project image"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div>
           <Label>Client Name</Label>
           <Input name="clientName" placeholder="Enter Client name" required />

@@ -47,6 +47,7 @@ export type Project = {
   siteManager?: User;
   client?: User;
   progress: number;
+  images?: Array<{ public_id?: string; url: string }>;
   createdAt: string;
 };
 
@@ -218,35 +219,41 @@ export async function getProjectDetails(projectId: string) {
   return data.data;
 }
 
-export async function createProject(payload: {
-  clientName: string;
-  clientEmail: string;
-  clientPassword: string;
-  projectName: string;
-  category: string;
-  phases: Array<{ phaseName: string; amount: number; paymentDate: string }>;
-  projectBudget: number;
-  startDate: string;
-  endDate: string;
-  address: string;
-  siteManagerId: string;
-}) {
+export async function createProject(
+  payload:
+    | FormData
+    | {
+        clientName: string;
+        clientEmail: string;
+        clientPassword: string;
+        projectName: string;
+        category: string;
+        phases: Array<{ phaseName: string; amount: number; paymentDate: string }>;
+        projectBudget: number;
+        startDate: string;
+        endDate: string;
+        address: string;
+        siteManagerId: string;
+      },
+) {
   const { data } = await http.post<ApiResponse<CreateProjectResponse>>("/admin/projects", payload);
   return data;
 }
 
 export async function updateProject(
   projectId: string,
-  payload: {
-    clientName: string;
-    projectName: string;
-    category: string;
-    phases: Array<{ phaseName: string; amount: number; dueDate: string }>;
-    startDate: string;
-    endDate: string;
-    address: string;
-    siteManagerId: string;
-  },
+  payload:
+    | FormData
+    | {
+        clientName: string;
+        projectName: string;
+        category: string;
+        phases: Array<{ phaseName: string; amount: number; dueDate: string }>;
+        startDate: string;
+        endDate: string;
+        address: string;
+        siteManagerId: string;
+      },
 ) {
   const { data } = await http.patch<ApiResponse<Project>>(
     `/admin/projects/${projectId}`,

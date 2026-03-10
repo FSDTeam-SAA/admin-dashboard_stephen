@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 import { PROJECT_CATEGORIES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,16 @@ export type EditablePhase = {
   phaseName: string;
   amount: string;
   dueDate: string;
+};
+
+export type ExistingProjectImage = {
+  public_id: string;
+  url: string;
+};
+
+export type NewProjectImage = {
+  id: string;
+  preview: string;
 };
 
 type ManagerOption = {
@@ -54,6 +64,11 @@ type UpdateProjectModalProps = {
   onEndDateChange: (value: string) => void;
   address: string;
   onAddressChange: (value: string) => void;
+  existingImages: ExistingProjectImage[];
+  newImages: NewProjectImage[];
+  onNewImagesChange: (files: FileList | null) => void;
+  onRemoveExistingImage: (publicId: string) => void;
+  onRemoveNewImage: (imageId: string) => void;
   isPending: boolean;
 };
 
@@ -81,6 +96,11 @@ export default function UpdateProjectModal({
   onEndDateChange,
   address,
   onAddressChange,
+  existingImages,
+  newImages,
+  onNewImagesChange,
+  onRemoveExistingImage,
+  onRemoveNewImage,
   isPending,
 }: UpdateProjectModalProps) {
   return (
@@ -248,6 +268,78 @@ export default function UpdateProjectModal({
                 value={address}
                 onChange={(event) => onAddressChange(event.target.value)}
               />
+            </div>
+
+            <div>
+              <Label>Project Images</Label>
+              <div className="mt-2 rounded-lg border border-dashed border-white/30 p-4">
+                <label
+                  htmlFor="update-project-images"
+                  className="mb-3 inline-flex cursor-pointer items-center gap-2 rounded-md border border-white/25 px-3 py-2 text-sm text-white/90"
+                >
+                  <Upload className="h-4 w-4" />
+                  Add Images
+                </label>
+                <Input
+                  id="update-project-images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => onNewImagesChange(event.target.files)}
+                />
+
+                {existingImages.length === 0 && newImages.length === 0 ? (
+                  <p className="text-sm text-white/60">
+                    No project images yet. Upload one or more images.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {existingImages.map((image) => (
+                      <div
+                        key={image.public_id}
+                        className="relative h-28 overflow-hidden rounded-md border border-white/20"
+                      >
+                        <div
+                          className="h-full w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url(${image.url})` }}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
+                          onClick={() => onRemoveExistingImage(image.public_id)}
+                          aria-label="Remove existing image"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {newImages.map((image) => (
+                      <div
+                        key={image.id}
+                        className="relative h-28 overflow-hidden rounded-md border border-[#1b9e72]/40"
+                      >
+                        <div
+                          className="h-full w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url(${image.preview})` }}
+                        />
+                        <div className="absolute left-2 top-2 rounded bg-[#1b9e72]/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          NEW
+                        </div>
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
+                          onClick={() => onRemoveNewImage(image.id)}
+                          aria-label="Remove new image"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

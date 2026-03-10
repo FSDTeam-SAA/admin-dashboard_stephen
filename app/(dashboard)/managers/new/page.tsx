@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Upload } from "lucide-react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChevronLeft, Upload, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { createManager } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 
 export default function AddManagerPage() {
   const router = useRouter();
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: createManager,
@@ -35,6 +38,46 @@ export default function AddManagerPage() {
     formData.delete("confirmPassword");
     mutation.mutate(formData);
   }
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+      setAvatarPreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return previewUrl;
+    });
+  };
+
+  const clearAvatarSelection = () => {
+    setAvatarPreview((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return null;
+    });
+
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -67,13 +110,38 @@ export default function AddManagerPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-dashed border-white/50 p-12 text-center">
-          <Label htmlFor="avatar" className="cursor-pointer text-body-16">
-            <Upload className="mx-auto mb-2 h-8 w-8 text-[#6d63d7]" />
-            Upload Photo
-            <p className="text-body-16 text-white/70">png,jpeg,jpg</p>
-          </Label>
-          <Input id="avatar" name="avatar" type="file" accept="image/*" className="hidden" />
+        <div className="rounded-lg border border-dashed border-white/50 p-8 text-center">
+          {avatarPreview ? (
+            <div className="relative mx-auto h-44 w-44 overflow-hidden rounded-lg border border-white/30">
+              <div
+                className="h-full w-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${avatarPreview})` }}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white"
+                onClick={clearAvatarSelection}
+                aria-label="Remove selected image"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Label htmlFor="avatar" className="cursor-pointer text-body-16">
+              <Upload className="mx-auto mb-2 h-8 w-8 text-[#6d63d7]" />
+              Upload Photo
+              <p className="text-body-16 text-white/70">png,jpeg,jpg</p>
+            </Label>
+          )}
+          <Input
+            ref={avatarInputRef}
+            id="avatar"
+            name="avatar"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
         </div>
 
         <div className="grid gap-4 pt-2 md:grid-cols-2">
