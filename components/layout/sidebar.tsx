@@ -7,6 +7,15 @@ import { useState } from "react";
 import { FolderOpen, LayoutDashboard, LogOut, Settings, UserPlus, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -18,6 +27,7 @@ const items = [
 export function Sidebar({ mobile = false, onNav }: { mobile?: boolean; onNav?: () => void }) {
   const pathname = usePathname();
   const [logoError, setLogoError] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   return (
     <aside className={cn("flex h-full w-full flex-col bg-[#111f26] px-5 py-6", mobile ? "border-r border-white/10" : "")}> 
@@ -78,12 +88,35 @@ export function Sidebar({ mobile = false, onNav }: { mobile?: boolean; onNav?: (
         <button
           type="button"
           className="text-body-16 flex h-10 w-full items-center gap-3 rounded-lg bg-[#ff1a11] px-4 text-white"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => setLogoutOpen(true)}
         >
           <LogOut className="h-5 w-5" />
           Logout
         </button>
       </div>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Logout</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to logout?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setLogoutOpen(false)}>
+              No
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Eye, EyeOff, Plus, Upload, X } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createProject, getManagers } from "@/lib/api";
@@ -92,6 +92,10 @@ export default function AddProjectPage() {
   };
 
   async function onSubmit(formData: FormData) {
+    if (createProjectMutation.isPending) {
+      return;
+    }
+
     const clientName = String(formData.get("clientName") || "").trim();
     const projectName = String(formData.get("projectName") || "").trim();
     const category = String(formData.get("category") || "").trim();
@@ -181,6 +185,11 @@ export default function AddProjectPage() {
     createProjectMutation.mutate(payload);
   }
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSubmit(new FormData(event.currentTarget));
+  };
+
   return (
     <div className="space-y-5">
       <Link href="/projects" className="text-heading-40 inline-flex items-center gap-2">
@@ -188,7 +197,7 @@ export default function AddProjectPage() {
       </Link>
       <p className="text-body-16 text-white/80">Create and manage your projects</p>
 
-      <form action={onSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label>Project Images</Label>
           <div className="mt-2 rounded-lg border border-dashed border-white/35 p-4">
@@ -407,7 +416,7 @@ export default function AddProjectPage() {
               Cancel
             </Button>
           </Link>
-          <Button className="h-12" disabled={createProjectMutation.isPending}>
+          <Button type="submit" className="h-12" disabled={createProjectMutation.isPending}>
             {createProjectMutation.isPending ? "Creating..." : "Create Project"}
           </Button>
         </div>
