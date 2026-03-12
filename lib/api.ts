@@ -73,6 +73,8 @@ export type DocumentItem = {
   createdAt: string;
 };
 
+type DocumentCategory = "drawings" | "invoices" | "reports" | "contracts";
+
 export type UpdateItem = {
   _id: string;
   description: string;
@@ -138,6 +140,12 @@ type FinancialOverviewData = {
     remainingBalance: number;
   };
   projects: Project[];
+};
+
+type GroupedDocumentsPayload = {
+  totalCount?: number;
+  counts?: Partial<Record<DocumentCategory, number>>;
+  documents?: Partial<Record<DocumentCategory, DocumentItem[]>>;
 };
 
 type RetryRequestConfig = InternalAxiosRequestConfig & {
@@ -494,8 +502,34 @@ export async function addUpdateComment(updateId: string, payload: { comment: str
 }
 
 export async function getDocuments(projectId: string) {
-  const { data } = await http.get<ApiResponse<DocumentItem[]>>(`/documents/project/${projectId}`);
-  return data.data;
+  const { data } = await http.get<ApiResponse<DocumentItem[] | GroupedDocumentsPayload>>(
+    `/documents/project/${projectId}`,
+  );
+
+  const rawDocuments = data.data;
+  if (Array.isArray(rawDocuments)) {
+    return rawDocuments;
+  }
+
+  if (!rawDocuments || typeof rawDocuments !== "object") {
+    return [];
+  }
+
+  const grouped = rawDocuments.documents;
+  if (!grouped || typeof grouped !== "object") {
+    return [];
+  }
+
+  const orderedCategories: DocumentCategory[] = [
+    "drawings",
+    "invoices",
+    "reports",
+    "contracts",
+  ];
+
+  return orderedCategories.flatMap((category) =>
+    Array.isArray(grouped[category]) ? grouped[category] : [],
+  );
 }
 
 export async function uploadDocument(payload: FormData) {
