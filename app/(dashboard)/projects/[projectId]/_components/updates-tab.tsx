@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Trash2 } from "lucide-react";
 import type { CommentItem, UpdateItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +18,7 @@ type UpdatesTabProps = {
   onUpdateCommentTextChange: (value: string) => void;
   onSelectUpdate: (updateId: string) => void;
   onLike: (updateId: string) => void;
+  onDeleteUpdate: (update: UpdateItem) => void;
   onSendComment: () => void;
 };
 
@@ -33,6 +34,7 @@ export function UpdatesTab({
   onUpdateCommentTextChange,
   onSelectUpdate,
   onLike,
+  onDeleteUpdate,
   onSendComment,
 }: UpdatesTabProps) {
   return (
@@ -108,6 +110,14 @@ export function UpdatesTab({
                       onClick={() => onLike(update._id)}
                     >
                       {likeCount} Like
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-white/20 text-white/70 transition hover:border-white/40 hover:text-white"
+                      onClick={() => onDeleteUpdate(update)}
+                      aria-label="Delete project update"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                     <button
                       type="button"

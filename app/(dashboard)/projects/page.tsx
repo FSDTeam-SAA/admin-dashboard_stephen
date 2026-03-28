@@ -18,6 +18,7 @@ import {
   toDateInputValue,
 } from "@/lib/project-form";
 import UpdateProjectModal, {
+  type EditableClientAccount,
   type EditablePhase,
   type ExistingProjectImage,
   type NewProjectImage,
@@ -47,7 +48,9 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(1);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
-  const [clientName, setClientName] = useState("");
+  const [clientAccounts, setClientAccounts] = useState<EditableClientAccount[]>([
+    { name: "", email: "", password: "" },
+  ]);
   const [projectName, setProjectName] = useState("");
   const [siteManagerId, setSiteManagerId] = useState("");
   const [address, setAddress] = useState("");
@@ -118,8 +121,27 @@ export default function ProjectsPage() {
   }, []);
 
   function openEditModal(project: Project) {
+    const accounts =
+      project.clientUsers?.length
+        ? project.clientUsers.map((client) => ({
+            name: client.name ?? "",
+            email: client.email ?? "",
+            password: "",
+          }))
+        : [
+            {
+              name: project.clientName ?? "",
+              email: project.clientEmail ?? "",
+              password: "",
+            },
+          ];
+
     setEditingProject(project);
-    setClientName(project.clientName ?? "");
+    setClientAccounts(
+      accounts.filter((account) => account.name || account.email).length > 0
+        ? accounts
+        : [{ name: "", email: "", password: "" }],
+    );
     setProjectName(project.projectName ?? "");
     setSiteManagerId(project.siteManager?._id ?? "");
     setAddress(project.address ?? "");
@@ -150,6 +172,7 @@ export default function ProjectsPage() {
 
   function closeEditModal() {
     setEditingProject(null);
+    setClientAccounts([{ name: "", email: "", password: "" }]);
     setPhases([{ phaseName: "", amount: "", dueDate: "" }]);
     setExistingImages([]);
     setRemovedImagePublicIds([]);
@@ -214,13 +237,32 @@ export default function ProjectsPage() {
     setNewImages(newImagesRef.current.map(({ id, preview }) => ({ id, preview })));
   }
 
+  function handleClientAccountChange(
+    index: number,
+    field: keyof EditableClientAccount,
+    value: string,
+  ) {
+    setClientAccounts((prev) =>
+      prev.map((account, idx) =>
+        idx === index ? { ...account, [field]: value } : account,
+      ),
+    );
+  }
+
+  function handleAddClientAccount() {
+    setClientAccounts((prev) => [...prev, { name: "", email: "", password: "" }]);
+  }
+
+  function handleRemoveClientAccount(index: number) {
+    setClientAccounts((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
   function handleUpdateProject() {
     if (!editingProject) {
       return;
     }
 
     const missingFields = [
-      !clientName.trim() ? "Client Name" : null,
       !projectName.trim() ? "Projects Name" : null,
       !startDate ? "Projects Start Date" : null,
       !endDate ? "Projects End Date" : null,
@@ -230,6 +272,35 @@ export default function ProjectsPage() {
 
     if (missingFields.length > 0) {
       toast.error(`Missing required fields: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    const normalizedClientAccounts = clientAccounts
+      .map((account) => ({
+        name: account.name.trim(),
+        email: account.email.trim().toLowerCase(),
+        password: account.password.trim(),
+      }))
+      .filter((account) => account.name || account.email);
+
+    if (normalizedClientAccounts.length === 0) {
+      toast.error("Add at least one client account");
+      return;
+    }
+
+    const incompleteClientIndex = normalizedClientAccounts.findIndex(
+      (account) => !account.name || !account.email,
+    );
+    if (incompleteClientIndex !== -1) {
+      toast.error(
+        `Client ${incompleteClientIndex + 1} must include name and email`,
+      );
+      return;
+    }
+
+    const uniqueEmails = new Set(normalizedClientAccounts.map((account) => account.email));
+    if (uniqueEmails.size !== normalizedClientAccounts.length) {
+      toast.error("Client emails must be unique");
       return;
     }
 
@@ -277,7 +348,24 @@ export default function ProjectsPage() {
     }
 
     const payload = new FormData();
-    payload.set("clientName", clientName.trim());
+    payload.set("clientName", normalizedClientAccounts[0].name);
+    payload.set(
+      "clientAccounts",
+      JSON.stringify(
+        normalizedClientAccounts.map((account) =>
+          account.password
+            ? {
+                name: account.name,
+                email: account.email,
+                password: account.password,
+              }
+            : {
+                name: account.name,
+                email: account.email,
+              },
+        ),
+      ),
+    );
     payload.set("projectName", projectName.trim());
     payload.set("category", DASHBOARD_CATEGORY);
     payload.set("phases", JSON.stringify(normalizedPhases));
@@ -338,7 +426,7 @@ export default function ProjectsPage() {
             <table className="w-full min-w-[1100px] text-left">
               <thead className="text-body-16 font-semibold text-white">
                 <tr>
-                  <th className="px-6 py-4">Client Name</th>
+                  <th className="px-6 py-4">Client Accounts</th>
                   <th className="px-6 py-4">Projects Name</th>
                   <th className="px-6 py-4">Budget</th>
                   <th className="px-6 py-4">Total Paid Amount</th>
@@ -354,7 +442,11 @@ export default function ProjectsPage() {
                     key={project._id}
                     className="text-body-16 border-t border-white/10 text-white/90"
                   >
-                    <td className="px-6 py-5">{project.clientName}</td>
+                    <td className="px-6 py-5">
+                      {(project.clientUsers?.length
+                        ? project.clientUsers.map((client) => client.name).join(", ")
+                        : project.clientName) || "-"}
+                    </td>
                     <td className="px-6 py-5">{project.projectName}</td>
                     <td className="px-6 py-5">
                       {formatCurrency(project.projectBudget)}
@@ -420,8 +512,10 @@ export default function ProjectsPage() {
           event.preventDefault();
           handleUpdateProject();
         }}
-        clientName={clientName}
-        onClientNameChange={setClientName}
+        clientAccounts={clientAccounts}
+        onClientAccountChange={handleClientAccountChange}
+        onAddClientAccount={handleAddClientAccount}
+        onRemoveClientAccount={handleRemoveClientAccount}
         projectName={projectName}
         onProjectNameChange={setProjectName}
         siteManagerId={siteManagerId}

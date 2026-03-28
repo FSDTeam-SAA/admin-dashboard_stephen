@@ -30,6 +30,12 @@ export type NewProjectImage = {
   preview: string;
 };
 
+export type EditableClientAccount = {
+  name: string;
+  email: string;
+  password: string;
+};
+
 type ManagerOption = {
   _id: string;
   name: string;
@@ -39,8 +45,14 @@ type UpdateProjectModalProps = {
   open: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  clientName: string;
-  onClientNameChange: (value: string) => void;
+  clientAccounts: EditableClientAccount[];
+  onClientAccountChange: (
+    index: number,
+    field: keyof EditableClientAccount,
+    value: string,
+  ) => void;
+  onAddClientAccount: () => void;
+  onRemoveClientAccount: (index: number) => void;
   projectName: string;
   onProjectNameChange: (value: string) => void;
   siteManagerId: string;
@@ -73,8 +85,10 @@ export default function UpdateProjectModal({
   open,
   onClose,
   onSubmit,
-  clientName,
-  onClientNameChange,
+  clientAccounts,
+  onClientAccountChange,
+  onAddClientAccount,
+  onRemoveClientAccount,
   projectName,
   onProjectNameChange,
   siteManagerId,
@@ -120,21 +134,78 @@ export default function UpdateProjectModal({
           onSubmit={onSubmit}
         >
           <div className="app-scrollbar min-h-0 flex-1 space-y-4 overflow-y-scroll pr-3">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label>Client Name</Label>
-                <Input
-                  value={clientName}
-                  onChange={(event) => onClientNameChange(event.target.value)}
-                />
+            <div>
+              <Label>Projects Name</Label>
+              <Input
+                value={projectName}
+                onChange={(event) => onProjectNameChange(event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Client Accounts</Label>
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-white/40"
+                  onClick={onAddClientAccount}
+                  aria-label="Add client account"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
-              <div>
-                <Label>Projects Name</Label>
-                <Input
-                  value={projectName}
-                  onChange={(event) => onProjectNameChange(event.target.value)}
-                />
-              </div>
+
+              {clientAccounts.map((account, index) => (
+                <div key={index} className="rounded-lg border border-white/10 p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="text-body-16 font-medium text-white">
+                      Client {index + 1}
+                    </p>
+                    {clientAccounts.length > 1 ? (
+                      <button
+                        type="button"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:bg-white/10"
+                        onClick={() => onRemoveClientAccount(index)}
+                        aria-label={`Remove client ${index + 1}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <Label>Client Name</Label>
+                      <Input
+                        value={account.name}
+                        onChange={(event) =>
+                          onClientAccountChange(index, "name", event.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Client Email</Label>
+                      <Input
+                        type="email"
+                        value={account.email}
+                        onChange={(event) =>
+                          onClientAccountChange(index, "email", event.target.value)
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Password (new client only)</Label>
+                      <Input
+                        type="password"
+                        value={account.password}
+                        onChange={(event) =>
+                          onClientAccountChange(index, "password", event.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div>

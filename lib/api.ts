@@ -47,6 +47,7 @@ export type Project = {
   projectStatus: "active" | "finished";
   siteManager?: User;
   client?: User;
+  clientUsers?: User[];
   progress: number;
   images?: Array<{ public_id?: string; url: string }>;
   createdAt: string;
@@ -129,7 +130,15 @@ type CreateProjectResponse = {
   project: Project;
   clientAccount: {
     isNewClient: boolean;
-    email: string;
+    email?: string;
+    emails?: string[];
+    count?: number;
+    clients?: Array<{
+      _id: string;
+      name: string;
+      email: string;
+      category?: string;
+    }>;
   };
 };
 
@@ -513,6 +522,11 @@ export async function getProjectUpdates(projectId: string) {
 
 export async function toggleUpdateLike(updateId: string) {
   const { data } = await http.patch<ApiResponse<UpdateItem>>(`/updates/${updateId}/like`);
+  return data;
+}
+
+export async function deleteProjectUpdate(updateId: string) {
+  const { data } = await http.delete<ApiResponse<null>>(`/updates/${updateId}`);
   return data;
 }
 
