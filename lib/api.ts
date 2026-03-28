@@ -478,6 +478,19 @@ export async function addProjectPhase(
   return data;
 }
 
+export async function syncProjectAutoProgress(projectId: string) {
+  const { data } = await http.post<
+    ApiResponse<{ project: Project; previousPercent: number; currentPercent: number; updated: boolean }>
+  >(
+    `/admin/projects/${projectId}/auto-progress`,
+    {},
+    {
+      params: { category: DASHBOARD_CATEGORY },
+    },
+  );
+  return data.data;
+}
+
 export async function addProjectProgress(
   projectId: string,
   payload: { progressName: string; percent: number; note?: string },

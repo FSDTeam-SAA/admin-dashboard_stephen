@@ -6,11 +6,11 @@ import { useParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  addProjectProgress,
   addUpdateComment,
   createTask,
   deleteProjectUpdate,
   getChatMessages,
+  syncProjectAutoProgress,
   getDocuments,
   getProjectChat,
   getProjectDetails,
@@ -68,8 +68,6 @@ export default function ProjectDetailsPage() {
   const [deletingUpdate, setDeletingUpdate] = useState<UpdateItem | null>(null);
   const [updateCommentText, setUpdateCommentText] = useState("");
   const [chatText, setChatText] = useState("");
-  const [progressValue, setProgressValue] = useState("");
-  const [progressEdit, setProgressEdit] = useState(false);
   const commentInputRef = useRef<HTMLInputElement | null>(null);
 
   const projectQuery = useQuery({
@@ -114,17 +112,12 @@ export default function ProjectDetailsPage() {
     select: (data) => ensureArray<ChatMessageItem>(data),
   });
 
-  const updateProgressMutation = useMutation({
-    mutationFn: (payload: {
-      progressName: string;
-      percent: number;
-      note?: string;
-    }) => addProjectProgress(projectId, payload),
+  const syncAutoProgressMutation = useMutation({
+    mutationFn: () => syncProjectAutoProgress(projectId),
     onSuccess: () => {
-      toast.success("Progress updated");
+      toast.success("Progress synced");
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      setProgressEdit(false);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -393,32 +386,18 @@ export default function ProjectDetailsPage() {
       <Card className="max-w-md p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-body-16">Progress</p>
-          <Button size="sm" onClick={() => setProgressEdit((prev) => !prev)}>
-            {progressEdit ? "Close" : "Update"}
+          <Button
+            size="sm"
+            onClick={() => syncAutoProgressMutation.mutate()}
+            disabled={syncAutoProgressMutation.isPending}
+          >
+            {syncAutoProgressMutation.isPending ? "Syncing..." : "Sync"}
           </Button>
         </div>
         <ProgressBar value={lastProgress} />
-        {progressEdit ? (
-          <div className="mt-3 flex items-center gap-2">
-            <Input
-              value={progressValue}
-              onChange={(event) => setProgressValue(event.target.value)}
-              placeholder="80"
-              className="h-10"
-            />
-            <Button
-              size="sm"
-              onClick={() =>
-                updateProgressMutation.mutate({
-                  progressName: "Manual Update",
-                  percent: Number(progressValue),
-                })
-              }
-            >
-              Save
-            </Button>
-          </div>
-        ) : null}
+        <p className="mt-2 text-xs text-white/70">
+          Progress is auto-calculated daily from project start and end date.
+        </p>
       </Card>
 
       <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
