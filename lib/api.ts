@@ -70,7 +70,12 @@ export type DocumentItem = {
   _id: string;
   category: string;
   title: string;
-  document: { url: string };
+  document: { url: string; public_id?: string };
+  meta?: {
+    fileName?: string;
+    size?: number;
+    mimeType?: string;
+  };
   createdAt: string;
 };
 
@@ -217,7 +222,7 @@ const refreshAccessToken = async () => {
     const { data } = await axios.post<
       ApiResponse<{ accessToken: string; refreshToken?: string }>
     >(
-      `${BASE_URL}/auth/refresh-token`,
+      `${BASE_URL}/admin/dashboard/refresh-token`,
       { refreshToken },
       {
         withCredentials: true,

@@ -45,7 +45,7 @@ function parseJwtExpiryMs(token?: string) {
 
 async function refreshAccessToken(token: JWT) {
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
+    const res = await fetch(`${BASE_URL}/admin/dashboard/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: token.refreshToken }),
