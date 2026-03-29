@@ -53,6 +53,9 @@ import type { ActiveTab } from "./_components/types";
 import { DOCUMENT_CATEGORY_OPTIONS, ensureArray } from "./_components/utils";
 import { UpdatesTab } from "./_components/updates-tab";
 
+const DOCUMENT_FILE_ACCEPT =
+  "image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf";
+
 export default function ProjectDetailsPage() {
   const params = useParams<{ projectId?: string | string[] }>();
   const projectIdParam = params?.projectId;
@@ -64,6 +67,7 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("task");
   const [taskModal, setTaskModal] = useState(false);
   const [docModal, setDocModal] = useState(false);
+  const [selectedDocumentName, setSelectedDocumentName] = useState("");
   const [selectedUpdateId, setSelectedUpdateId] = useState<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState<UpdateItem | null>(null);
   const [updateCommentText, setUpdateCommentText] = useState("");
@@ -194,6 +198,7 @@ export default function ProjectDetailsPage() {
     onSuccess: () => {
       toast.success("Document uploaded");
       queryClient.invalidateQueries({ queryKey: ["documents", projectId] });
+      setSelectedDocumentName("");
       setDocModal(false);
     },
     onError: (error) => toast.error(error.message),
@@ -509,7 +514,15 @@ export default function ProjectDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={docModal} onOpenChange={setDocModal}>
+      <Dialog
+        open={docModal}
+        onOpenChange={(nextOpen) => {
+          setDocModal(nextOpen);
+          if (!nextOpen) {
+            setSelectedDocumentName("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
@@ -541,14 +554,23 @@ export default function ProjectDetailsPage() {
             </div>
             <div className="rounded-lg border border-dashed border-white/50 p-8 text-center">
               <Label htmlFor="document" className="cursor-pointer text-body-16">
-                Upload Photo
-                <p className="text-body-16 text-white/70">png,jpeg,jpg</p>
+                Upload File
+                <p className="text-body-16 text-white/70">
+                  png, jpg, jpeg, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv
+                </p>
+                {selectedDocumentName ? (
+                  <p className="mt-2 truncate text-xs text-white">Selected: {selectedDocumentName}</p>
+                ) : null}
               </Label>
               <Input
                 id="document"
                 name="document"
                 type="file"
+                accept={DOCUMENT_FILE_ACCEPT}
                 className="hidden"
+                onChange={(event) =>
+                  setSelectedDocumentName(event.target.files?.[0]?.name || "")
+                }
                 required
               />
             </div>

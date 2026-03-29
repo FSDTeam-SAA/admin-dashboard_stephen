@@ -1,4 +1,4 @@
-import { Download, Paperclip, Plus } from "lucide-react";
+import { Download, File, FileImage, FileSpreadsheet, FileText, Plus } from "lucide-react";
 import type { DocumentItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,72 @@ import { formatDocumentCategory } from "./utils";
 type DocumentsTabProps = {
   documents: DocumentItem[];
   onUploadDocument: () => void;
+};
+
+const IMAGE_EXTENSION_REGEX = /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i;
+const SPREADSHEET_EXTENSION_REGEX = /\.(csv|xls|xlsx)$/i;
+
+const resolveFileName = (doc: DocumentItem) => {
+  const fromMeta = String(doc.meta?.fileName || "").trim();
+  if (fromMeta) {
+    return fromMeta;
+  }
+
+  const fromUrl = String(doc.document?.url || "")
+    .split("?")[0]
+    .split("/")
+    .filter(Boolean)
+    .pop();
+
+  return fromUrl || "document";
+};
+
+const getMimeType = (doc: DocumentItem) => String(doc.meta?.mimeType || "").toLowerCase();
+
+const isImageDocument = (doc: DocumentItem, fileName: string, url: string) => {
+  const mimeType = getMimeType(doc);
+  return (
+    mimeType.startsWith("image/") ||
+    IMAGE_EXTENSION_REGEX.test(fileName) ||
+    IMAGE_EXTENSION_REGEX.test(url)
+  );
+};
+
+const resolveFileKind = (doc: DocumentItem, fileName: string, url: string) => {
+  const mimeType = getMimeType(doc);
+  const normalizedName = String(fileName || "").toLowerCase();
+  const normalizedUrl = String(url || "").toLowerCase();
+
+  if (isImageDocument(doc, fileName, url)) {
+    return "image";
+  }
+
+  if (
+    mimeType.includes("spreadsheet") ||
+    mimeType.includes("excel") ||
+    SPREADSHEET_EXTENSION_REGEX.test(normalizedName) ||
+    SPREADSHEET_EXTENSION_REGEX.test(normalizedUrl)
+  ) {
+    return "spreadsheet";
+  }
+
+  if (
+    mimeType.includes("pdf") ||
+    mimeType.includes("word") ||
+    mimeType.includes("text") ||
+    mimeType.includes("presentation")
+  ) {
+    return "document";
+  }
+
+  return "file";
+};
+
+const renderFileIcon = (kind: string) => {
+  if (kind === "image") return <FileImage className="h-5 w-5" />;
+  if (kind === "spreadsheet") return <FileSpreadsheet className="h-5 w-5" />;
+  if (kind === "document") return <FileText className="h-5 w-5" />;
+  return <File className="h-5 w-5" />;
 };
 
 export function DocumentsTab({ documents, onUploadDocument }: DocumentsTabProps) {
@@ -27,20 +93,34 @@ export function DocumentsTab({ documents, onUploadDocument }: DocumentsTabProps)
         ) : (
           documents.map((doc) => {
             const documentUrl = doc.document?.url || "";
+            const fileName = resolveFileName(doc);
+            const fileKind = resolveFileKind(doc, fileName, documentUrl);
 
             return (
               <Card
                 key={doc._id}
                 className="flex items-center justify-between bg-white p-3 text-black"
               >
-                <div className="flex items-center gap-3">
-                  <Paperclip className="h-5 w-5 text-[#8a732e]" />
-                  <div>
-                    <p className="text-body-16 font-medium">{doc.title || "-"}</p>
-                    <p className="text-body-16 text-black/70">
-                      {formatDocumentCategory(doc.category)} |{" "}
-                      {formatDate(doc.createdAt)}
+                <div className="flex min-w-0 items-center gap-3">
+                  {documentUrl && isImageDocument(doc, fileName, documentUrl) ? (
+                    <img
+                      src={documentUrl}
+                      alt={doc.title || fileName}
+                      className="h-11 w-11 rounded-md border border-black/10 object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-11 w-11 items-center justify-center rounded-md bg-black/5 text-black/75">
+                      {renderFileIcon(fileKind)}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-body-16 truncate font-medium">
+                      {doc.title || fileName || "-"}
                     </p>
+                    <p className="text-body-16 text-black/70">
+                      {formatDocumentCategory(doc.category)} | {formatDate(doc.createdAt)}
+                    </p>
+                    <p className="truncate text-xs text-black/60">{fileName}</p>
                   </div>
                 </div>
                 {documentUrl ? (
@@ -49,7 +129,7 @@ export function DocumentsTab({ documents, onUploadDocument }: DocumentsTabProps)
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#8a732e]"
-                    aria-label={`Download ${doc.title || "document"}`}
+                    aria-label={`Open ${doc.title || fileName || "document"}`}
                   >
                     <Download className="h-5 w-5" />
                   </a>
