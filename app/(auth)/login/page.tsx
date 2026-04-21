@@ -26,18 +26,20 @@ export default function LoginPage() {
       email,
       password,
       category,
+      callbackUrl: "/dashboard",
       redirect: false,
     });
 
     setLoading(false);
 
-    if (result?.error) {
+    if (result?.error || !result?.ok) {
       toast.error("Invalid credentials or unauthorized category. Use construction admin account.");
       return;
     }
 
     toast.success("Login successful");
-    router.push("/dashboard");
+    router.refresh();
+    window.location.href = result.url ?? "/dashboard";
   }
 
   return (
