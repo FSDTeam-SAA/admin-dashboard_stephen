@@ -76,6 +76,7 @@ async function refreshAccessToken(token: JWT) {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   cookies: {
     sessionToken: {
       name: SESSION_COOKIE_NAME,
