@@ -43,5 +43,20 @@ export const formatRelativeTime = (dateValue?: string) => {
   return `${diffDays}D AGO`;
 };
 
+export const formatDateTime = (dateValue?: string) => {
+  if (!dateValue) return "-";
+
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(parsed);
+};
+
 export const ensureArray = <T>(value: unknown): T[] =>
   Array.isArray(value) ? (value as T[]) : [];

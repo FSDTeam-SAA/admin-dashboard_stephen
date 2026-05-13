@@ -38,8 +38,8 @@ export function UpdatesTab({
   onSendComment,
 }: UpdatesTabProps) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-      <div className="space-y-3">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)] lg:items-start">
+      <div className="space-y-3 lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1">
         {updates.length === 0 ? (
           <Card className="border-[#24313a] bg-[#111a20] p-4">
             <p className="text-body-16 text-white/70">No updates yet.</p>
@@ -53,6 +53,7 @@ export function UpdatesTab({
               .toUpperCase();
             const avatarUrl = update.uploadedBy?.avatar?.url;
             const likeCount = Number(update.stats?.likeCount ?? 0);
+            const commentCount = Number(update.stats?.commentCount ?? 0);
 
             return (
               <Card
@@ -128,7 +129,7 @@ export function UpdatesTab({
                       }}
                     >
                       <MessageCircle className="h-4 w-4" />
-                      Comment
+                      {commentCount} Comment{commentCount === 1 ? "" : "s"}
                     </button>
                   </div>
                 </div>
@@ -138,7 +139,7 @@ export function UpdatesTab({
         )}
       </div>
 
-      <Card className="flex flex-col border-[#24313a] bg-[#111a20] p-3">
+      <Card className="flex flex-col border-[#24313a] bg-[#111a20] p-3 lg:sticky lg:top-6 lg:h-[calc(100vh-16rem)] lg:min-h-[34rem]">
         <div className="mb-3 border-b border-[#24313a] pb-2">
           <p className="text-sm font-semibold text-white/90">
             {selectedUpdate ? "Update Comments" : "Select an update"}
@@ -149,17 +150,17 @@ export function UpdatesTab({
             </p>
           ) : null}
         </div>
-        <div className="max-h-[430px] flex-1 space-y-3 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
           {!selectedUpdate ? (
-            <div className="rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-sm text-white/65">
+            <div className="flex min-h-full items-center justify-center rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-center text-sm text-white/65">
               Click an update card to view comments.
             </div>
           ) : commentsLoading ? (
-            <div className="rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-sm text-white/65">
+            <div className="flex min-h-full items-center justify-center rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-center text-sm text-white/65">
               Loading comments...
             </div>
           ) : comments.length === 0 ? (
-            <div className="rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-sm text-white/65">
+            <div className="flex min-h-full items-center justify-center rounded-lg border border-[#2a3943] bg-[#0f171c] p-3 text-center text-sm text-white/65">
               No comments yet.
             </div>
           ) : (
