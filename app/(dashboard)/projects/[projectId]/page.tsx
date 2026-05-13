@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addUpdateComment,
+  createProjectUpdate,
   createTask,
   deleteProjectUpdate,
   getChatMessages,
@@ -19,11 +20,13 @@ import {
   getUpdateComments,
   sendChatMessage,
   toggleUpdateLike,
+  updateProjectProgress,
   updateTaskStatus,
   uploadDocument,
   type CommentItem,
   type DocumentItem,
   type Message as ChatMessageItem,
+  type ProjectProgressUpdate,
   type Task,
   type UpdateItem,
 } from "@/lib/api";
@@ -46,7 +49,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSocketClient } from "@/lib/socket";
 import { toast } from "sonner";
 import { ConversationTab } from "./_components/conversation-tab";
+import { CreateUpdateDialog } from "./_components/create-update-dialog";
 import { DocumentsTab } from "./_components/documents-tab";
+import { ProgressTab } from "./_components/progress-tab";
 import { ProjectTabs } from "./_components/project-tabs";
 import { TaskTab } from "./_components/task-tab";
 import type { ActiveTab } from "./_components/types";
@@ -67,7 +72,16 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("task");
   const [taskModal, setTaskModal] = useState(false);
   const [docModal, setDocModal] = useState(false);
+  const [createUpdateModal, setCreateUpdateModal] = useState(false);
+  const [newUpdateDescription, setNewUpdateDescription] = useState("");
+  const [newUpdateFiles, setNewUpdateFiles] = useState<File[]>([]);
   const [selectedDocumentName, setSelectedDocumentName] = useState("");
+  const [editingProgress, setEditingProgress] = useState<ProjectProgressUpdate | null>(null);
+  const [progressForm, setProgressForm] = useState({
+    progressName: "",
+    percent: "",
+    note: "",
+  });
   const [selectedUpdateId, setSelectedUpdateId] = useState<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState<UpdateItem | null>(null);
   const [updateCommentText, setUpdateCommentText] = useState("");
@@ -136,6 +150,19 @@ export default function ProjectDetailsPage() {
     onError: (error) => toast.error(error.message),
   });
 
+  const createUpdateMutation = useMutation({
+    mutationFn: createProjectUpdate,
+    onSuccess: (response) => {
+      toast.success("Project update posted");
+      queryClient.invalidateQueries({ queryKey: ["updates", projectId] });
+      setSelectedUpdateId(response.data?._id ?? null);
+      setCreateUpdateModal(false);
+      setNewUpdateDescription("");
+      setNewUpdateFiles([]);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const updateTaskStatusMutation = useMutation({
     mutationFn: ({
       taskId,
@@ -147,6 +174,28 @@ export default function ProjectDetailsPage() {
     onSuccess: () => {
       toast.success("Task status updated");
       queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const updateProgressMutation = useMutation({
+    mutationFn: ({
+      progressUpdateId,
+      payload,
+    }: {
+      progressUpdateId: string;
+      payload: { progressName: string; percent: number; note?: string };
+    }) => updateProjectProgress(projectId, progressUpdateId, payload),
+    onSuccess: () => {
+      toast.success("Progress updated");
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setEditingProgress(null);
+      setProgressForm({
+        progressName: "",
+        percent: "",
+        note: "",
+      });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -242,6 +291,17 @@ export default function ProjectDetailsPage() {
   const messages = messagesQuery.data ?? [];
   const selectedUpdate =
     updates.find((update) => update._id === activeUpdateId) ?? null;
+  const progressUpdates = useMemo(
+    () =>
+      ensureArray<ProjectProgressUpdate>(project?.progressUpdates)
+        .slice()
+        .sort(
+          (left, right) =>
+            new Date(right?.updatedAt || 0).getTime() -
+            new Date(left?.updatedAt || 0).getTime(),
+        ),
+    [project?.progressUpdates],
+  );
 
   const loading = projectQuery.isLoading;
   const lastProgress = useMemo(
@@ -267,6 +327,65 @@ export default function ProjectDetailsPage() {
       updateId: activeUpdateId,
       comment: trimmed,
     });
+  };
+
+  const openEditProgressModal = (progressUpdate: ProjectProgressUpdate) => {
+    setEditingProgress(progressUpdate);
+    setProgressForm({
+      progressName: progressUpdate.progressName || "",
+      percent: String(progressUpdate.percent ?? ""),
+      note: progressUpdate.note || "",
+    });
+  };
+
+  const handleProgressUpdateSubmit = () => {
+    if (!editingProgress) {
+      return;
+    }
+
+    const progressName = progressForm.progressName.trim();
+    const percent = Number(progressForm.percent);
+    const note = progressForm.note.trim();
+
+    if (!progressName) {
+      toast.error("Progress name is required");
+      return;
+    }
+
+    if (Number.isNaN(percent) || percent < 0 || percent > 100) {
+      toast.error("Progress percentage must be between 0 and 100");
+      return;
+    }
+
+    updateProgressMutation.mutate({
+      progressUpdateId: editingProgress._id,
+      payload: {
+        progressName,
+        percent,
+        note,
+      },
+    });
+  };
+
+  const resetCreateUpdateForm = () => {
+    setCreateUpdateModal(false);
+    setNewUpdateDescription("");
+    setNewUpdateFiles([]);
+  };
+
+  const handleCreateUpdateSubmit = () => {
+    const description = newUpdateDescription.trim();
+    if (!description) {
+      toast.error("Description is required");
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("projectId", projectId);
+    payload.append("description", description);
+    newUpdateFiles.forEach((file) => payload.append("media", file));
+
+    createUpdateMutation.mutate(payload);
   };
 
   useEffect(() => {
@@ -388,7 +507,7 @@ export default function ProjectDetailsPage() {
       </Link>
       <p className="text-body-16 text-white/80">Create and manage your projects</p>
 
-      <Card className="max-w-md p-3">
+      {/* <Card className="max-w-md p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-body-16">Progress</p>
           <Button
@@ -403,9 +522,16 @@ export default function ProjectDetailsPage() {
         <p className="mt-2 text-xs text-white/70">
           Progress is auto-calculated daily from project start and end date.
         </p>
-      </Card>
+      </Card> */}
 
-      <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="flex flex-wrap items-center gap-3">
+        <ProjectTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        {activeTab === "updates" ? (
+          <Button className="ml-auto" onClick={() => setCreateUpdateModal(true)}>
+            Post
+          </Button>
+        ) : null}
+      </div>
 
       {activeTab === "task" ? (
         <TaskTab
@@ -439,6 +565,13 @@ export default function ProjectDetailsPage() {
         <DocumentsTab
           documents={documents}
           onUploadDocument={() => setDocModal(true)}
+        />
+      ) : null}
+
+      {activeTab === "progress" ? (
+        <ProgressTab
+          progressUpdates={progressUpdates}
+          onEditProgress={openEditProgressModal}
         />
       ) : null}
 
@@ -627,6 +760,127 @@ export default function ProjectDetailsPage() {
               {deleteUpdateMutation.isPending ? "Deleting..." : "Yes"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <CreateUpdateDialog
+        open={createUpdateModal}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !createUpdateMutation.isPending) {
+            resetCreateUpdateForm();
+          } else {
+            setCreateUpdateModal(nextOpen);
+          }
+        }}
+        description={newUpdateDescription}
+        selectedFiles={newUpdateFiles}
+        isSubmitting={createUpdateMutation.isPending}
+        onDescriptionChange={setNewUpdateDescription}
+        onFilesChange={(files) => setNewUpdateFiles(files ? Array.from(files) : [])}
+        onSubmit={handleCreateUpdateSubmit}
+        onCancel={resetCreateUpdateForm}
+      />
+
+      <Dialog
+        open={Boolean(editingProgress)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !updateProgressMutation.isPending) {
+            setEditingProgress(null);
+            setProgressForm({
+              progressName: "",
+              percent: "",
+              note: "",
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Progress Update</DialogTitle>
+            <DialogDescription>
+              Update the selected project progress entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleProgressUpdateSubmit();
+            }}
+          >
+            <div>
+              <Label htmlFor="progress-name">Progress Name</Label>
+              <Input
+                id="progress-name"
+                value={progressForm.progressName}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    progressName: event.target.value,
+                  }))
+                }
+                placeholder="Progress title"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="progress-percent">Progress Percentage</Label>
+              <Input
+                id="progress-percent"
+                type="number"
+                min={0}
+                max={100}
+                value={progressForm.percent}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    percent: event.target.value,
+                  }))
+                }
+                placeholder="0 - 100"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="progress-note">Note</Label>
+              <Textarea
+                id="progress-note"
+                value={progressForm.note}
+                onChange={(event) =>
+                  setProgressForm((current) => ({
+                    ...current,
+                    note: event.target.value,
+                  }))
+                }
+                placeholder="Describe the current progress"
+                rows={4}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditingProgress(null);
+                  setProgressForm({
+                    progressName: "",
+                    percent: "",
+                    note: "",
+                  });
+                }}
+                disabled={updateProgressMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateProgressMutation.isPending}>
+                {updateProgressMutation.isPending ? "Updating..." : "Update"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

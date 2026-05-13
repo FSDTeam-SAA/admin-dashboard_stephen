@@ -7,8 +7,10 @@ import { BASE_URL } from "./lib/constants";
 
 const REQUIRED_DASHBOARD_ROLE = "admin";
 const REQUIRED_DASHBOARD_CATEGORY = "construction";
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const SESSION_COOKIE_NAME = IS_PRODUCTION
+const AUTH_APP_URL =
+  process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+const IS_SECURE_AUTH_URL = AUTH_APP_URL.startsWith("https://");
+const SESSION_COOKIE_NAME = IS_SECURE_AUTH_URL
   ? "__Secure-construction-admin.session-token"
   : "construction-admin.session-token";
 
@@ -84,7 +86,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: IS_PRODUCTION,
+        secure: IS_SECURE_AUTH_URL,
       },
     },
   },

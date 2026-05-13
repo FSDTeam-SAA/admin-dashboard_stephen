@@ -31,6 +31,15 @@ export type ProjectPhase = {
   notes?: string;
 };
 
+export type ProjectProgressUpdate = {
+  _id: string;
+  progressName: string;
+  percent: number;
+  note?: string;
+  updatedAt: string;
+  updatedBy?: User | string | null;
+};
+
 export type Project = {
   _id: string;
   clientName: string;
@@ -49,6 +58,7 @@ export type Project = {
   client?: User;
   clientUsers?: User[];
   progress: number;
+  progressUpdates?: ProjectProgressUpdate[];
   images?: Array<{ public_id?: string; url: string }>;
   createdAt: string;
 };
@@ -501,6 +511,18 @@ export async function addProjectProgress(
   payload: { progressName: string; percent: number; note?: string },
 ) {
   const { data } = await http.post<ApiResponse<Project>>(`/projects/${projectId}/progress`, payload);
+  return data;
+}
+
+export async function updateProjectProgress(
+  projectId: string,
+  progressUpdateId: string,
+  payload: { progressName: string; percent: number; note?: string },
+) {
+  const { data } = await http.patch<ApiResponse<Project>>(
+    `/projects/${projectId}/progress/${progressUpdateId}`,
+    payload,
+  );
   return data;
 }
 

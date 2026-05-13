@@ -9,6 +9,7 @@ const TAB_ITEMS: Array<{ key: ActiveTab; label: string }> = [
   { key: "task", label: "Task" },
   { key: "updates", label: "Updates" },
   { key: "documents", label: "Documents" },
+  { key: "progress", label: "Progress" },
 ];
 
 export function ProjectTabs({ activeTab, onTabChange }: ProjectTabsProps) {
