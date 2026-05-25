@@ -776,7 +776,25 @@ export default function ProjectDetailsPage() {
         selectedFiles={newUpdateFiles}
         isSubmitting={createUpdateMutation.isPending}
         onDescriptionChange={setNewUpdateDescription}
-        onFilesChange={(files) => setNewUpdateFiles(files ? Array.from(files) : [])}
+        onFilesChange={(files) =>
+          setNewUpdateFiles((current) => {
+            const merged = [...current, ...files];
+            const uniqueFiles = merged.filter(
+              (file, index, list) =>
+                list.findIndex(
+                  (candidate) =>
+                    candidate.name === file.name &&
+                    candidate.size === file.size &&
+                    candidate.lastModified === file.lastModified,
+                ) === index,
+            );
+
+            return uniqueFiles;
+          })
+        }
+        onRemoveFile={(index) =>
+          setNewUpdateFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))
+        }
         onSubmit={handleCreateUpdateSubmit}
         onCancel={resetCreateUpdateForm}
       />

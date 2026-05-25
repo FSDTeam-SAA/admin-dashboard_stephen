@@ -13,11 +13,21 @@ export function PaginationBar({
 }) {
   if (totalPages <= 1) return null;
 
-  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, idx) => idx + 1);
+  const startPage = Math.max(1, Math.min(page - 2, totalPages - 4));
+  const endPage = Math.min(totalPages, startPage + 4);
+  const pages = Array.from(
+    { length: endPage - startPage + 1 },
+    (_, idx) => startPage + idx,
+  );
 
   return (
     <div className="flex items-center gap-2">
-      <Button size="icon" variant="outline" onClick={() => onChange(page - 1)} disabled={page <= 1}>
+      <Button
+        size="icon"
+        variant="outline"
+        onClick={() => onChange(page - 1)}
+        disabled={page <= 1}
+      >
         ‹
       </Button>
       {pages.map((p) => (
@@ -30,7 +40,12 @@ export function PaginationBar({
           {p}
         </Button>
       ))}
-      <Button size="icon" variant="outline" onClick={() => onChange(page + 1)} disabled={page >= totalPages}>
+      <Button
+        size="icon"
+        variant="outline"
+        onClick={() => onChange(page + 1)}
+        disabled={page >= totalPages}
+      >
         ›
       </Button>
     </div>

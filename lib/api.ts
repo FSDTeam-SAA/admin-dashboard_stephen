@@ -95,6 +95,7 @@ export type UpdateItem = {
   _id: string;
   description: string;
   images: Array<{ url: string }>;
+  videos?: Array<{ url: string; thumbnailUrl?: string }>;
   uploadedBy?: User;
   stats: {
     likeCount: number;
