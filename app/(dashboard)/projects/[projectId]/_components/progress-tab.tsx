@@ -1,25 +1,18 @@
 import type { ProjectProgressUpdate } from "@/lib/api";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { formatDateTime, getInitials } from "./utils";
 
 type ProgressTabProps = {
   progressUpdates: ProjectProgressUpdate[];
   onEditProgress: (progressUpdate: ProjectProgressUpdate) => void;
+  onDeleteProgress: (progressUpdate: ProjectProgressUpdate) => void;
 };
-
-const getSafePercent = (value: number) =>
-  Math.max(0, Math.min(100, Number(value) || 0));
 
 const getUpdatedByMeta = (updatedBy?: ProjectProgressUpdate["updatedBy"]) => {
   if (!updatedBy || typeof updatedBy === "string") {
-    return {
-      name: "Unavailable",
-      email: "",
-      avatarUrl: "",
-    };
+    return { name: "Unavailable", email: "", avatarUrl: "" };
   }
-
   return {
     name: updatedBy.name || "Unknown User",
     email: updatedBy.email || "",
@@ -27,7 +20,11 @@ const getUpdatedByMeta = (updatedBy?: ProjectProgressUpdate["updatedBy"]) => {
   };
 };
 
-export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProps) {
+export function ProgressTab({
+  progressUpdates,
+  onEditProgress,
+  onDeleteProgress,
+}: ProgressTabProps) {
   if (progressUpdates.length === 0) {
     return (
       <Card className="border-[#24313a] bg-[#111a20] p-5">
@@ -39,7 +36,6 @@ export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProp
   return (
     <div className="space-y-4">
       {progressUpdates.map((progressUpdate, index) => {
-        const safePercent = getSafePercent(progressUpdate.percent);
         const updatedBy = getUpdatedByMeta(progressUpdate.updatedBy);
 
         return (
@@ -48,8 +44,9 @@ export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProp
               <span className="absolute left-[12px] top-8 bottom-[-18px] w-px bg-[#29404d]" />
             ) : null}
 
-            <span className="absolute left-0 top-3 flex h-6 w-6 items-center justify-center rounded-full border border-[#3b5b6b] bg-[#0d151a] text-[9px] font-semibold text-[#e8d38b]">
-              {safePercent}
+            {/* Timeline bullet — percent is not displayed; entries are informational only */}
+            <span className="absolute left-0 top-3 flex h-6 w-6 items-center justify-center rounded-full border border-[#3b5b6b] bg-[#0d151a]">
+              <span className="h-2 w-2 rounded-full bg-[#e8d38b]" />
             </span>
 
             <Card className="border-[#24313a] bg-[#111a20] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
@@ -64,14 +61,16 @@ export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProp
                     </h3>
                   </div>
 
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7f97a5]">
-                      Note
-                    </p>
-                    <p className="text-body-16 leading-relaxed text-white/80">
-                      {progressUpdate.note || "No additional description provided."}
-                    </p>
-                  </div>
+                  {progressUpdate.note ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7f97a5]">
+                        Note
+                      </p>
+                      <p className="text-body-16 leading-relaxed text-white/80">
+                        {progressUpdate.note}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2 self-start">
@@ -83,17 +82,15 @@ export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProp
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
-                  <div className="rounded-full border border-[#335160] bg-[#0d151a] px-4 py-2 text-sm font-semibold text-[#e8d38b]">
-                    {safePercent}% Complete
-                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#5b2a2a] bg-[#0d151a] text-red-400 transition hover:border-[#7a3a3a] hover:text-red-300"
+                    onClick={() => onDeleteProgress(progressUpdate)}
+                    aria-label="Delete progress update"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-full bg-[#23333d]">
-                <div
-                  className="h-3 rounded-full bg-[#2dc978]"
-                  style={{ width: `${safePercent}%` }}
-                />
               </div>
 
               <div className="mt-4 flex flex-col gap-3 border-t border-[#24313a] pt-4 text-sm text-white/70 sm:flex-row sm:items-center sm:justify-between">
@@ -108,7 +105,6 @@ export function ProgressTab({ progressUpdates, onEditProgress }: ProgressTabProp
                       {getInitials(updatedBy.name)}
                     </div>
                   )}
-
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7f97a5]">
                       Updated By

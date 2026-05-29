@@ -509,9 +509,24 @@ export async function syncProjectAutoProgress(projectId: string) {
 
 export async function addProjectProgress(
   projectId: string,
-  payload: { progressName: string; percent: number; note?: string },
+  payload: { progressName: string; note?: string; photo?: File | null },
 ) {
-  const { data } = await http.post<ApiResponse<Project>>(`/projects/${projectId}/progress`, payload);
+  // Send JSON — the route has no multer middleware so FormData would fail.
+  // Photo upload requires a backend multer setup; it is ignored here for now.
+  const { data } = await http.post<ApiResponse<Project>>(
+    `/projects/${projectId}/progress`,
+    { progressName: payload.progressName, percent: 0, note: payload.note ?? "" },
+  );
+  return data;
+}
+
+export async function deleteProjectProgress(
+  projectId: string,
+  progressUpdateId: string,
+) {
+  const { data } = await http.delete<ApiResponse<Project>>(
+    `/projects/${projectId}/progress/${progressUpdateId}`,
+  );
   return data;
 }
 
