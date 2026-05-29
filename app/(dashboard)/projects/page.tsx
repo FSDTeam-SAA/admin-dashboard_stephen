@@ -42,6 +42,15 @@ import { toast } from "sonner";
 
 const PAGE_SIZE = 9;
 
+function calcAutoTimelinePercent(startDate?: string, endDate?: string): number {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate).getTime();
+  const end = new Date(endDate).getTime();
+  const now = Date.now();
+  if (end <= start) return 0;
+  return Math.max(0, Math.min(100, Math.round(((now - start) / (end - start)) * 100)));
+}
+
 export default function ProjectsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -459,7 +468,7 @@ export default function ProjectsPage() {
                     </td>
                     <td className="px-6 py-5">{formatDate(project.endDate)}</td>
                     <td className="px-6 py-5 min-w-[220px]">
-                      <ProgressBar value={project.progress} />
+                      <ProgressBar value={calcAutoTimelinePercent(project.startDate, project.endDate)} />
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
