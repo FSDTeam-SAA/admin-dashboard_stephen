@@ -1,6 +1,7 @@
 import type { ProjectProgressUpdate } from "@/lib/api";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { formatDateTime, getInitials } from "./utils";
 
 type ProgressTabProps = {
@@ -71,6 +72,10 @@ export function ProgressTab({
                       </p>
                     </div>
                   ) : null}
+
+                  <div className="w-full min-w-50">
+                    <ProgressBar value={progressUpdate.percent ?? 0} />
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 self-start">
